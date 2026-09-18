@@ -1,9 +1,11 @@
 services:
   - type: web
     name: jobqueue
-    env: docker
+    runtime: docker
     plan: free
     dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeployTrigger: commit
     envVars:
       - key: DATABASE_URL
         sync: false
