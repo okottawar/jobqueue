@@ -3,81 +3,145 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Job Queue Dashboard</title>
+<title>Job Queue — Background Processing Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-<header>
-  <h1>⚙️ Job Queue Dashboard</h1>
-  <div class="sub">Reliable background job processing — Go + PostgreSQL</div>
-</header>
 
-<main>
-  <section class="stats-grid" id="stats-grid">
-    <div class="stat-card"><div class="stat-value" id="stat-total">–</div><div class="stat-label">Total Jobs</div></div>
-    <div class="stat-card pending"><div class="stat-value" id="stat-pending">–</div><div class="stat-label">Pending</div></div>
-    <div class="stat-card processing"><div class="stat-value" id="stat-processing">–</div><div class="stat-label">Processing</div></div>
-    <div class="stat-card completed"><div class="stat-value" id="stat-completed">–</div><div class="stat-label">Completed</div></div>
-    <div class="stat-card failed"><div class="stat-value" id="stat-failed">–</div><div class="stat-label">Failed</div></div>
-    <div class="stat-card workers"><div class="stat-value" id="stat-workers">–</div><div class="stat-label">Active Workers</div></div>
-  </section>
-
-  <section class="panel">
-    <h2>Submit a Job</h2>
-    <form id="job-form">
-      <div class="form-row">
-        <label for="job-type">Type</label>
-        <select id="job-type">
-          <option value="email">email</option>
-          <option value="webhook">webhook</option>
-          <option value="report">report</option>
-        </select>
-
-        <label for="max-attempts">Max attempts</label>
-        <input type="number" id="max-attempts" value="3" min="1" max="10">
-
-        <button type="submit">Submit Job</button>
-      </div>
-      <div class="form-row">
-        <label for="payload">Payload (JSON)</label>
-        <input type="text" id="payload" value='{"to":"user@example.com","subject":"Welcome"}'>
-      </div>
-    </form>
-    <div id="submit-status"></div>
-  </section>
-
-  <section class="panel">
-    <div class="panel-header">
-      <h2>Jobs</h2>
-      <div class="filters">
-        <label for="status-filter">Filter:</label>
-        <select id="status-filter">
-          <option value="">all</option>
-          <option value="pending">pending</option>
-          <option value="processing">processing</option>
-          <option value="retry">retry</option>
-          <option value="completed">completed</option>
-          <option value="failed">failed</option>
-        </select>
-        <button id="refresh-btn">Refresh</button>
-        <label class="auto-refresh"><input type="checkbox" id="auto-refresh" checked> auto-refresh</label>
+<header class="site-header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-mark">JQ</div>
+      <div class="brand-text">
+        <h1>Job Queue</h1>
+        <p class="eyebrow">Background Processing — Go &middot; PostgreSQL</p>
       </div>
     </div>
-    <table id="jobs-table">
-      <thead>
-        <tr>
-          <th>ID</th><th>Type</th><th>Status</th><th>Attempts</th><th>Created</th><th>Updated</th><th></th>
-        </tr>
-      </thead>
-      <tbody id="jobs-body"></tbody>
-    </table>
+    <div class="header-meta">
+      <span class="dot" id="live-dot"></span>
+      <span class="mono-label">Live</span>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+
+  <section class="stats-strip" id="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Total Jobs</div>
+      <div class="stat-value" id="stat-total">&ndash;</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Pending</div>
+      <div class="stat-value accent-pending" id="stat-pending">&ndash;</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Processing</div>
+      <div class="stat-value accent-processing" id="stat-processing">&ndash;</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Completed</div>
+      <div class="stat-value accent-completed" id="stat-completed">&ndash;</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Failed</div>
+      <div class="stat-value accent-failed" id="stat-failed">&ndash;</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Active Workers</div>
+      <div class="stat-value" id="stat-workers">&ndash;</div>
+    </div>
   </section>
+
+  <section class="panel">
+    <div class="panel-heading">
+      <h2>Submit a Job</h2>
+      <p class="panel-sub">Queue a new asynchronous task for processing.</p>
+    </div>
+
+    <form id="job-form" class="job-form">
+      <div class="field-row">
+        <div class="field">
+          <label for="job-type" class="mono-label">Type</label>
+          <select id="job-type">
+            <option value="email">email</option>
+            <option value="webhook">webhook</option>
+            <option value="report">report</option>
+          </select>
+        </div>
+
+        <div class="field field-narrow">
+          <label for="max-attempts" class="mono-label">Max Attempts</label>
+          <input type="number" id="max-attempts" value="3" min="1" max="10">
+        </div>
+
+        <div class="field field-submit">
+          <button type="submit" class="btn-primary">Submit Job</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="payload" class="mono-label">Payload (JSON)</label>
+        <input type="text" id="payload" class="mono-input" value='{"to":"user@example.com","subject":"Welcome"}'>
+      </div>
+    </form>
+    <div id="submit-status" class="submit-status"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header-row">
+      <div class="panel-heading">
+        <h2>Jobs</h2>
+        <p class="panel-sub">Track lifecycle, attempts, and failures in real time.</p>
+      </div>
+      <div class="filters">
+        <div class="field field-narrow">
+          <label for="status-filter" class="mono-label">Filter</label>
+          <select id="status-filter">
+            <option value="">all</option>
+            <option value="pending">pending</option>
+            <option value="processing">processing</option>
+            <option value="retry">retry</option>
+            <option value="completed">completed</option>
+            <option value="failed">failed</option>
+          </select>
+        </div>
+        <button id="refresh-btn" class="btn-secondary">Refresh</button>
+        <label class="auto-refresh mono-label">
+          <input type="checkbox" id="auto-refresh" checked> auto-refresh
+        </label>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table id="jobs-table">
+        <thead>
+          <tr>
+            <th>ID</th><th>Type</th><th>Status</th><th>Attempts</th><th>Created</th><th>Updated</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="jobs-body"></tbody>
+      </table>
+      <div id="empty-state" class="empty-state hidden">
+        <p>No jobs match this filter yet.</p>
+      </div>
+    </div>
+  </section>
+
 </main>
+
+<footer class="site-footer">
+  <p>Job Queue &middot; a reliable background processing reference implementation</p>
+</footer>
 
 <div id="job-modal" class="modal hidden">
   <div class="modal-content">
-    <button id="modal-close" class="modal-close">&times;</button>
-    <h2>Job Details</h2>
+    <button id="modal-close" class="modal-close" aria-label="Close">&times;</button>
+    <p class="mono-label modal-eyebrow">Job Details</p>
+    <h2 class="modal-title" id="modal-title">&nbsp;</h2>
     <pre id="modal-body"></pre>
   </div>
 </div>
