@@ -1,0 +1,143 @@
+:root {
+  --bg: #0f1115;
+  --panel: #171a21;
+  --border: #262b36;
+  --text: #e6e8ee;
+  --muted: #8b93a7;
+  --accent: #5b8cff;
+  --pending: #d9a441;
+  --processing: #5b8cff;
+  --completed: #3ecf8e;
+  --failed: #ef5a6f;
+  --retry: #c77dff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+header {
+  padding: 24px 32px;
+  border-bottom: 1px solid var(--border);
+}
+header h1 { margin: 0 0 4px 0; font-size: 22px; }
+header .sub { color: var(--muted); font-size: 13px; }
+
+main {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 24px 32px 64px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.stat-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+}
+.stat-value { font-size: 24px; font-weight: 700; }
+.stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.stat-card.pending .stat-value { color: var(--pending); }
+.stat-card.processing .stat-value { color: var(--processing); }
+.stat-card.completed .stat-value { color: var(--completed); }
+.stat-card.failed .stat-value { color: var(--failed); }
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+}
+.panel h2 { margin-top: 0; font-size: 16px; }
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.filters { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.auto-refresh { display: flex; align-items: center; gap: 4px; }
+
+.form-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+label { font-size: 13px; color: var(--muted); }
+select, input[type="text"], input[type="number"] {
+  background: #0d0f14;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+input[type="text"] { flex: 1; min-width: 240px; }
+button {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+button:hover { opacity: 0.9; }
+#refresh-btn { background: #2a2f3a; }
+
+#submit-status { font-size: 13px; margin-top: 6px; min-height: 18px; }
+#submit-status.ok { color: var(--completed); }
+#submit-status.err { color: var(--failed); }
+
+table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+tr:hover td { background: #1c2029; cursor: pointer; }
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.badge.pending { background: rgba(217,164,65,0.15); color: var(--pending); }
+.badge.processing { background: rgba(91,140,255,0.15); color: var(--processing); }
+.badge.completed { background: rgba(62,207,142,0.15); color: var(--completed); }
+.badge.failed { background: rgba(239,90,111,0.15); color: var(--failed); }
+.badge.retry { background: rgba(199,125,255,0.15); color: var(--retry); }
+
+.modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center;
+}
+.modal.hidden { display: none; }
+.modal-content {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  padding: 20px 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow: auto;
+  position: relative;
+}
+.modal-close {
+  position: absolute; top: 10px; right: 14px; background: none; font-size: 20px; color: var(--muted);
+}
+#modal-body { white-space: pre-wrap; word-break: break-word; font-size: 12px; color: var(--text); }
+
+.delete-btn { background: transparent; color: var(--failed); border: 1px solid var(--failed); padding: 3px 8px; }
