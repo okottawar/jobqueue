@@ -25,11 +25,22 @@ async function fetchJobs() {
 
 function renderJobs(jobs) {
   const body = document.getElementById("jobs-body");
+  const table = document.getElementById("jobs-table");
+  const empty = document.getElementById("empty-state");
   body.innerHTML = "";
+
+  if (!jobs || jobs.length === 0) {
+    table.style.display = "none";
+    empty.classList.remove("hidden");
+    return;
+  }
+  table.style.display = "";
+  empty.classList.add("hidden");
+
   for (const j of jobs) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${j.id}</td>
+      <td>#${j.id}</td>
       <td>${escapeHtml(j.type)}</td>
       <td><span class="badge ${j.status}">${j.status}</span></td>
       <td>${j.attempts}/${j.max_attempts}</td>
@@ -51,6 +62,7 @@ function renderJobs(jobs) {
 }
 
 function showJobDetail(job) {
+  document.getElementById("modal-title").textContent = `${job.type} · #${job.id}`;
   document.getElementById("modal-body").textContent = JSON.stringify(job, null, 2);
   document.getElementById("job-modal").classList.remove("hidden");
 }
@@ -99,7 +111,7 @@ document.getElementById("job-form").addEventListener("submit", async (e) => {
     payload = JSON.parse(payloadText);
   } catch (err) {
     statusEl.textContent = "Invalid JSON payload: " + err.message;
-    statusEl.className = "err";
+    statusEl.className = "submit-status err";
     return;
   }
 
@@ -115,11 +127,11 @@ document.getElementById("job-form").addEventListener("submit", async (e) => {
     }
     const job = await res.json();
     statusEl.textContent = `Job #${job.id} submitted.`;
-    statusEl.className = "ok";
+    statusEl.className = "submit-status ok";
     refreshAll();
   } catch (err) {
     statusEl.textContent = "Failed to submit job: " + err.message;
-    statusEl.className = "err";
+    statusEl.className = "submit-status err";
   }
 });
 
