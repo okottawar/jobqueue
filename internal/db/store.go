@@ -47,6 +47,49 @@ func (s *Store) CreateJob(ctx context.Context, req job.CreateJobRequest) (*job.J
 	return scanJob(row)
 }
 
+// CreateJobs inserts multiple jobs atomically in the "pending" state and returns them.
+func (s *Store) CreateJobs(ctx context.Context, reqs []job.CreateJobRequest) ([]*job.Job, error) {
+	if len(reqs) == 0 {
+		return []*job.Job{}, nil
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("beginning batch create transaction: %w", err)
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	const q = `
+		INSERT INTO jobs (type, payload, status, attempts, max_attempts, next_run_at)
+		VALUES ($1, $2, 'pending', 0, $3, now())
+		RETURNING id, type, payload, status, attempts, max_attempts, error,
+		          created_at, started_at, completed_at, updated_at, next_run_at`
+
+	jobs := make([]*job.Job, 0, len(reqs))
+	for _, req := range reqs {
+		maxAttempts := req.MaxAttempts
+		if maxAttempts <= 0 {
+			maxAttempts = 3
+		}
+		payload := req.Payload
+		if payload == nil {
+			payload = json.RawMessage(`{}`)
+		}
+
+		row := tx.QueryRow(ctx, q, req.Type, payload, maxAttempts)
+		j, err := scanJob(row)
+		if err != nil {
+			return nil, fmt.Errorf("creating job in batch: %w", err)
+		}
+		jobs = append(jobs, j)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("committing batch create transaction: %w", err)
+	}
+	return jobs, nil
+}
+
 // GetJob fetches a single job by ID.
 func (s *Store) GetJob(ctx context.Context, id int64) (*job.Job, error) {
 	const q = `
