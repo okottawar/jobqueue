@@ -106,10 +106,42 @@ function setSubmissionMode(mode) {
     button.classList.toggle("active", button.dataset.mode === mode);
   });
 
-  const batchSizeField = document.querySelector(".batch-size-field");
+  const singleFields = document.getElementById("single-fields");
+  const payloadLabel = document.getElementById("payload-label");
+  const payload = document.getElementById("payload");
   const submitButton = document.getElementById("submit-btn");
-  batchSizeField.classList.toggle("hidden", mode !== "batch");
-  submitButton.textContent = mode === "batch" ? "Submit Batch" : "Submit Job";
+
+  const isBatch = mode === "batch";
+  singleFields.classList.toggle("hidden", isBatch);
+  payloadLabel.textContent = isBatch ? "Batch Jobs (JSON array)" : "Payload (JSON)";
+  submitButton.textContent = isBatch ? "Submit Batch" : "Submit Job";
+
+  if (isBatch) {
+    payload.value = JSON.stringify([
+      {
+        type: "email",
+        payload: {
+          to: "alice@example.com",
+          subject: "Weekly account summary"
+        },
+        max_attempts: 3
+      },
+      {
+        type: "report",
+        payload: {},
+        max_attempts: 3
+      },
+      {
+        type: "webhook",
+        payload: {
+          url: "https://example.com/webhook"
+        },
+        max_attempts: 3
+      }
+    ], null, 2);
+  } else {
+    payload.value = '{"to":"user@example.com","subject":"Welcome"}';
+  }
 }
 
 document.querySelectorAll(".mode-btn").forEach((button) => {
@@ -118,49 +150,67 @@ document.querySelectorAll(".mode-btn").forEach((button) => {
 
 document.getElementById("job-form").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const type = document.getElementById("job-type").value;
-  const maxAttempts = parseInt(document.getElementById("max-attempts").value, 10) || 3;
-  const payloadText = document.getElementById("payload").value;
   const statusEl = document.getElementById("submit-status");
-
-  let payload;
-  try {
-    payload = JSON.parse(payloadText);
-  } catch (err) {
-    statusEl.textContent = "Invalid JSON payload: " + err.message;
-    statusEl.className = "submit-status err";
-    return;
-  }
-
-  const batchSize = Math.min(
-    100,
-    Math.max(1, parseInt(document.getElementById("batch-size").value, 10) || 1)
-  );
+  const payloadText = document.getElementById("payload").value;
 
   try {
-    const isBatch = submissionMode === "batch";
-    const responseBody = isBatch
-      ? {
-          jobs: Array.from({ length: batchSize }, () => ({
-            type,
-            payload,
-            max_attempts: maxAttempts,
-          })),
-        }
-      : {
-          type,
-          payload,
-          max_attempts: maxAttempts,
-        };
+    let responseBody;
+    let endpoint;
 
-    const res = await fetch(
-      isBatch ? `${API_BASE}/jobs/batch` : `${API_BASE}/jobs`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(responseBody),
+    if (submissionMode === "batch") {
+      let jobs;
+      try {
+        jobs = JSON.parse(payloadText);
+      } catch (err) {
+        throw new Error("Invalid batch JSON: " + err.message);
       }
-    );
+
+      if (!Array.isArray(jobs)) {
+        throw new Error("Batch payload must be a JSON array of jobs.");
+      }
+      if (jobs.length < 1 || jobs.length > 100) {
+        throw new Error("Batch must contain between 1 and 100 jobs.");
+      }
+
+      for (let i = 0; i < jobs.length; i += 1) {
+        const item = jobs[i];
+        if (!item || typeof item !== "object" || Array.isArray(item)) {
+          throw new Error(`Job ${i + 1} must be a JSON object.`);
+        }
+        if (typeof item.type !== "string" || !item.type.trim()) {
+          throw new Error(`Job ${i + 1} is missing a type.`);
+        }
+        if (!Object.prototype.hasOwnProperty.call(item, "payload")) {
+          throw new Error(`Job ${i + 1} is missing a payload.`);
+        }
+        if (item.max_attempts !== undefined &&
+            (!Number.isInteger(item.max_attempts) || item.max_attempts < 0)) {
+          throw new Error(`Job ${i + 1} has an invalid max_attempts value.`);
+        }
+      }
+
+      endpoint = `${API_BASE}/jobs/batch`;
+      responseBody = { jobs };
+    } else {
+      const type = document.getElementById("job-type").value;
+      const maxAttempts = parseInt(document.getElementById("max-attempts").value, 10) || 3;
+
+      let payload;
+      try {
+        payload = JSON.parse(payloadText);
+      } catch (err) {
+        throw new Error("Invalid JSON payload: " + err.message);
+      }
+
+      endpoint = `${API_BASE}/jobs`;
+      responseBody = { type, payload, max_attempts: maxAttempts };
+    }
+
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(responseBody),
+    });
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -168,7 +218,7 @@ document.getElementById("job-form").addEventListener("submit", async (e) => {
     }
 
     const result = await res.json();
-    statusEl.textContent = isBatch
+    statusEl.textContent = submissionMode === "batch"
       ? `${result.jobs.length} jobs submitted.`
       : `Job #${result.id} submitted.`;
     statusEl.className = "submit-status ok";
