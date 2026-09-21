@@ -249,7 +249,8 @@ label { font-weight: 500; }
 
 select,
 input[type="text"],
-input[type="number"] {
+input[type="number"],
+textarea {
   font-family: var(--font-sans);
   font-size: 14px;
   color: var(--text-primary);
