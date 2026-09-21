@@ -58,8 +58,8 @@
 
   <section class="panel">
     <div class="panel-heading">
-      <h2>Submit a Job</h2>
-      <p class="panel-sub">Queue a new asynchronous task for processing.</p>
+      <h2>Submit Jobs</h2>
+      <p class="panel-sub">Queue one task or load the worker pool with a batch.</p>
     </div>
 
     <form id="job-form" class="job-form">
@@ -79,13 +79,26 @@
         </div>
 
         <div class="field field-submit">
-          <button type="submit" class="btn-primary">Submit Job</button>
+          <button type="submit" class="btn-primary" id="submit-btn">Submit Job</button>
+        </div>
+      </div>
+
+      <div class="field mode-field">
+        <label class="mono-label">Submission Mode</label>
+        <div class="mode-toggle" role="group" aria-label="Submission mode">
+          <button type="button" class="mode-btn active" data-mode="single">Single</button>
+          <button type="button" class="mode-btn" data-mode="batch">Batch</button>
         </div>
       </div>
 
       <div class="field">
         <label for="payload" class="mono-label">Payload (JSON)</label>
         <input type="text" id="payload" class="mono-input" value='{"to":"user@example.com","subject":"Welcome"}'>
+      </div>
+
+      <div class="field batch-size-field hidden">
+        <label for="batch-size" class="mono-label">Batch Size</label>
+        <input type="number" id="batch-size" value="10" min="1" max="100">
       </div>
     </form>
     <div id="submit-status" class="submit-status"></div>

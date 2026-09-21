@@ -1,5 +1,6 @@
 const API_BASE = "/api";
 let autoRefreshTimer = null;
+let submissionMode = "single";
 
 async function fetchStats() {
   const res = await fetch(`${API_BASE}/stats`);
@@ -99,6 +100,22 @@ function setupAutoRefresh() {
   apply();
 }
 
+function setSubmissionMode(mode) {
+  submissionMode = mode;
+  document.querySelectorAll(".mode-btn").forEach((button) => {
+    button.classList.toggle("active", button.dataset.mode === mode);
+  });
+
+  const batchSizeField = document.querySelector(".batch-size-field");
+  const submitButton = document.getElementById("submit-btn");
+  batchSizeField.classList.toggle("hidden", mode !== "batch");
+  submitButton.textContent = mode === "batch" ? "Submit Batch" : "Submit Job";
+}
+
+document.querySelectorAll(".mode-btn").forEach((button) => {
+  button.addEventListener("click", () => setSubmissionMode(button.dataset.mode));
+});
+
 document.getElementById("job-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const type = document.getElementById("job-type").value;
@@ -115,18 +132,45 @@ document.getElementById("job-form").addEventListener("submit", async (e) => {
     return;
   }
 
+  const batchSize = Math.min(
+    100,
+    Math.max(1, parseInt(document.getElementById("batch-size").value, 10) || 1)
+  );
+
   try {
-    const res = await fetch(`${API_BASE}/jobs`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, payload, max_attempts: maxAttempts }),
-    });
+    const isBatch = submissionMode === "batch";
+    const responseBody = isBatch
+      ? {
+          jobs: Array.from({ length: batchSize }, () => ({
+            type,
+            payload,
+            max_attempts: maxAttempts,
+          })),
+        }
+      : {
+          type,
+          payload,
+          max_attempts: maxAttempts,
+        };
+
+    const res = await fetch(
+      isBatch ? `${API_BASE}/jobs/batch` : `${API_BASE}/jobs`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(responseBody),
+      }
+    );
+
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || `HTTP ${res.status}`);
     }
-    const job = await res.json();
-    statusEl.textContent = `Job #${job.id} submitted.`;
+
+    const result = await res.json();
+    statusEl.textContent = isBatch
+      ? `${result.jobs.length} jobs submitted.`
+      : `Job #${result.id} submitted.`;
     statusEl.className = "submit-status ok";
     refreshAll();
   } catch (err) {
