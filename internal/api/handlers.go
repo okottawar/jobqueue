@@ -70,7 +70,6 @@ func (s *Server) handleCreateJob(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid JSON body: "+err.Error())
 		return
 	}
-	req.Type = strings.TrimSpace(req.Type)
 	if err := s.validateCreateJobRequest(&req); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
