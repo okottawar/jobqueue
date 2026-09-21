@@ -178,8 +178,8 @@ func TestCreateJobs_Success(t *testing.T) {
 	if len(response.Jobs) != 3 {
 		t.Fatalf("expected 3 jobs, got %d", len(response.Jobs))
 	}
-	if len(s.store.jobs) != 3 {
-		t.Fatalf("expected 3 stored jobs, got %d", len(s.store.jobs))
+	if len(s.store.(*fakeJobStore).jobs) != 3 {
+		t.Fatalf("expected 3 stored jobs, got %d", len(s.store.(*fakeJobStore).jobs))
 	}
 	for _, created := range response.Jobs {
 		if created.ID == 0 || created.Status != job.StatusPending || created.Attempts != 0 {
@@ -198,8 +198,8 @@ func TestCreateJobs_EmptyBatch(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", w.Code)
 	}
-	if len(s.store.jobs) != 0 {
-		t.Fatalf("expected no jobs to be stored, got %d", len(s.store.jobs))
+	if len(s.store.(*fakeJobStore).jobs) != 0 {
+		t.Fatalf("expected no jobs to be stored, got %d", len(s.store.(*fakeJobStore).jobs))
 	}
 }
 
@@ -220,8 +220,8 @@ func TestCreateJobs_BatchTooLarge(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", w.Code)
 	}
-	if len(s.store.jobs) != 0 {
-		t.Fatalf("expected no jobs to be stored, got %d", len(s.store.jobs))
+	if len(s.store.(*fakeJobStore).jobs) != 0 {
+		t.Fatalf("expected no jobs to be stored, got %d", len(s.store.(*fakeJobStore).jobs))
 	}
 }
 
@@ -239,8 +239,8 @@ func TestCreateJobs_InvalidJobTypeDoesNotCreateAnyJobs(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", w.Code)
 	}
-	if len(s.store.jobs) != 0 {
-		t.Fatalf("expected no jobs to be stored, got %d", len(s.store.jobs))
+	if len(s.store.(*fakeJobStore).jobs) != 0 {
+		t.Fatalf("expected no jobs to be stored, got %d", len(s.store.(*fakeJobStore).jobs))
 	}
 }
 
@@ -257,8 +257,8 @@ func TestCreateJobs_InvalidMaxAttemptsDoesNotCreateAnyJobs(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", w.Code)
 	}
-	if len(s.store.jobs) != 0 {
-		t.Fatalf("expected no jobs to be stored, got %d", len(s.store.jobs))
+	if len(s.store.(*fakeJobStore).jobs) != 0 {
+		t.Fatalf("expected no jobs to be stored, got %d", len(s.store.(*fakeJobStore).jobs))
 	}
 }
 
