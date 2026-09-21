@@ -86,14 +86,14 @@
           <input type="number" id="max-attempts" value="3" min="1" max="10">
         </div>
 
-        <div class="field field-submit">
-          <button type="submit" class="btn-primary" id="submit-btn">Submit Job</button>
-        </div>
       </div>
 
       <div class="field payload-field">
         <label for="payload" class="mono-label" id="payload-label">Payload (JSON)</label>
         <textarea id="payload" class="mono-input payload-textarea" rows="7">{"to":"user@example.com","subject":"Welcome"}</textarea>
+      </div>
+      <div class="submit-action">
+        <button type="submit" class="btn-primary" id="submit-btn">Submit Job</button>
       </div>
     </form>
     <div id="submit-status" class="submit-status"></div>

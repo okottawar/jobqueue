@@ -347,6 +347,12 @@ select { cursor: pointer; }
 
 .hidden { display: none !important; }
 
+.submit-action {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
 .submit-status {
   font-family: var(--font-mono);
   font-size: 12.5px;
