@@ -17,6 +17,7 @@ import (
 // JobStore is the subset of db.Store operations the API needs.
 type JobStore interface {
 	CreateJob(ctx context.Context, req job.CreateJobRequest) (*job.Job, error)
+	CreateJobs(ctx context.Context, reqs []job.CreateJobRequest) ([]*job.Job, error)
 	GetJob(ctx context.Context, id int64) (*job.Job, error)
 	ListJobs(ctx context.Context, status string, limit, offset int) ([]*job.Job, error)
 	DeleteJob(ctx context.Context, id int64) error
@@ -28,6 +29,8 @@ type WorkerStats interface {
 	ActiveWorkers() int64
 	WorkerCount() int
 }
+
+const maxBatchSize = 100
 
 // Server holds dependencies for HTTP handlers.
 type Server struct {
@@ -45,6 +48,7 @@ func NewServer(store JobStore, registry *job.Registry, pool WorkerStats) *Server
 func (s *Server) Routes(mux *http.ServeMux, staticDir string) {
 	mux.HandleFunc("GET /api/jobs", s.handleListJobs)
 	mux.HandleFunc("POST /api/jobs", s.handleCreateJob)
+	mux.HandleFunc("POST /api/jobs/batch", s.handleCreateJobs)
 	mux.HandleFunc("GET /api/jobs/{id}", s.handleGetJob)
 	mux.HandleFunc("DELETE /api/jobs/{id}", s.handleDeleteJob)
 	mux.HandleFunc("GET /api/stats", s.handleStats)
@@ -66,17 +70,8 @@ func (s *Server) handleCreateJob(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid JSON body: "+err.Error())
 		return
 	}
-	req.Type = strings.TrimSpace(req.Type)
-	if req.Type == "" {
-		writeError(w, http.StatusBadRequest, "'type' is required")
-		return
-	}
-	if _, ok := s.registry.Get(req.Type); !ok {
-		writeError(w, http.StatusBadRequest, "unknown job type: "+req.Type)
-		return
-	}
-	if req.MaxAttempts < 0 {
-		writeError(w, http.StatusBadRequest, "'max_attempts' cannot be negative")
+	if err := s.validateCreateJobRequest(&req); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -90,6 +85,55 @@ func (s *Server) handleCreateJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, j)
+}
+
+func (s *Server) handleCreateJobs(w http.ResponseWriter, r *http.Request) {
+	var req job.BatchCreateJobsRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON body: "+err.Error())
+		return
+	}
+	if len(req.Jobs) == 0 {
+		writeError(w, http.StatusBadRequest, "'jobs' must contain at least one job")
+		return
+	}
+	if len(req.Jobs) > maxBatchSize {
+		writeError(w, http.StatusBadRequest, "batch size cannot exceed 100 jobs")
+		return
+	}
+	for i := range req.Jobs {
+		if err := s.validateCreateJobRequest(&req.Jobs[i]); err != nil {
+			writeError(w, http.StatusBadRequest, "job "+strconv.Itoa(i)+": "+err.Error())
+			return
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	jobs, err := s.store.CreateJobs(ctx, req.Jobs)
+	if err != nil {
+		slog.Error("failed to create jobs", "count", len(req.Jobs), "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to create jobs")
+		return
+	}
+	writeJSON(w, http.StatusCreated, job.BatchCreateJobsResponse{Jobs: jobs})
+}
+
+func (s *Server) validateCreateJobRequest(req *job.CreateJobRequest) error {
+	req.Type = strings.TrimSpace(req.Type)
+	if req.Type == "" {
+		return errors.New("'type' is required")
+	}
+	if _, ok := s.registry.Get(req.Type); !ok {
+		return errors.New("unknown job type: " + req.Type)
+	}
+	if req.MaxAttempts < 0 {
+		return errors.New("'max_attempts' cannot be negative")
+	}
+	return nil
 }
 
 func (s *Server) handleListJobs(w http.ResponseWriter, r *http.Request) {

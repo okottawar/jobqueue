@@ -39,6 +39,16 @@ type CreateJobRequest struct {
 	MaxAttempts int             `json:"max_attempts,omitempty"`
 }
 
+// BatchCreateJobsRequest is the payload accepted by POST /api/jobs/batch.
+type BatchCreateJobsRequest struct {
+	Jobs []CreateJobRequest `json:"jobs"`
+}
+
+// BatchCreateJobsResponse is returned after a batch is successfully created.
+type BatchCreateJobsResponse struct {
+	Jobs []*Job `json:"jobs"`
+}
+
 // Stats summarizes the current state of the job system.
 type Stats struct {
 	TotalJobs      int64 `json:"total_jobs"`

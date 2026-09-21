@@ -44,6 +44,18 @@ func (f *fakeJobStore) CreateJob(ctx context.Context, req job.CreateJobRequest) 
 	return j, nil
 }
 
+func (f *fakeJobStore) CreateJobs(ctx context.Context, reqs []job.CreateJobRequest) ([]*job.Job, error) {
+	jobs := make([]*job.Job, 0, len(reqs))
+	for _, req := range reqs {
+		created, err := f.CreateJob(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+		jobs = append(jobs, created)
+	}
+	return jobs, nil
+}
+
 func (f *fakeJobStore) GetJob(ctx context.Context, id int64) (*job.Job, error) {
 	j, ok := f.jobs[id]
 	if !ok {
@@ -142,6 +154,111 @@ func TestCreateJob_UnknownType(t *testing.T) {
 
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400 for unknown job type, got %d", w.Code)
+	}
+}
+
+func TestCreateJobs_Success(t *testing.T) {
+	s, mux := newTestServer()
+	body := `{"jobs":[
+		{"type":"report","payload":{},"max_attempts":3},
+		{"type":"email","payload":{"to":"a@b.com"},"max_attempts":4},
+		{"type":"webhook","payload":{"url":"https://example.com"}}
+	]}`
+	req := httptest.NewRequest(http.MethodPost, "/api/jobs/batch", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+	var response job.BatchCreateJobsResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if len(response.Jobs) != 3 {
+		t.Fatalf("expected 3 jobs, got %d", len(response.Jobs))
+	}
+	if len(s.store.(*fakeJobStore).jobs) != 3 {
+		t.Fatalf("expected 3 stored jobs, got %d", len(s.store.(*fakeJobStore).jobs))
+	}
+	for _, created := range response.Jobs {
+		if created.ID == 0 || created.Status != job.StatusPending || created.Attempts != 0 {
+			t.Errorf("unexpected created job: %+v", created)
+		}
+	}
+}
+
+func TestCreateJobs_EmptyBatch(t *testing.T) {
+	s, mux := newTestServer()
+	body := `{"jobs":[]}`
+	req := httptest.NewRequest(http.MethodPost, "/api/jobs/batch", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	if len(s.store.(*fakeJobStore).jobs) != 0 {
+		t.Fatalf("expected no jobs to be stored, got %d", len(s.store.(*fakeJobStore).jobs))
+	}
+}
+
+func TestCreateJobs_BatchTooLarge(t *testing.T) {
+	s, mux := newTestServer()
+	var jobs []job.CreateJobRequest
+	for i := 0; i < 101; i++ {
+		jobs = append(jobs, job.CreateJobRequest{Type: "report"})
+	}
+	bodyBytes, err := json.Marshal(job.BatchCreateJobsRequest{Jobs: jobs})
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/jobs/batch", strings.NewReader(string(bodyBytes)))
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	if len(s.store.(*fakeJobStore).jobs) != 0 {
+		t.Fatalf("expected no jobs to be stored, got %d", len(s.store.(*fakeJobStore).jobs))
+	}
+}
+
+func TestCreateJobs_InvalidJobTypeDoesNotCreateAnyJobs(t *testing.T) {
+	s, mux := newTestServer()
+	body := `{"jobs":[
+		{"type":"report","payload":{}},
+		{"type":"not-a-real-type","payload":{}},
+		{"type":"report","payload":{}}
+	]}`
+	req := httptest.NewRequest(http.MethodPost, "/api/jobs/batch", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	if len(s.store.(*fakeJobStore).jobs) != 0 {
+		t.Fatalf("expected no jobs to be stored, got %d", len(s.store.(*fakeJobStore).jobs))
+	}
+}
+
+func TestCreateJobs_InvalidMaxAttemptsDoesNotCreateAnyJobs(t *testing.T) {
+	s, mux := newTestServer()
+	body := `{"jobs":[
+		{"type":"report","payload":{}},
+		{"type":"report","payload":{},"max_attempts":-1}
+	]}`
+	req := httptest.NewRequest(http.MethodPost, "/api/jobs/batch", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	if len(s.store.(*fakeJobStore).jobs) != 0 {
+		t.Fatalf("expected no jobs to be stored, got %d", len(s.store.(*fakeJobStore).jobs))
 	}
 }
 
