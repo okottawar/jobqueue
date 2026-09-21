@@ -63,7 +63,15 @@
     </div>
 
     <form id="job-form" class="job-form">
-      <div class="field-row">
+      <div class="mode-field">
+        <label class="mono-label">Submission Mode</label>
+        <div class="mode-actions" role="group" aria-label="Submission mode">
+          <button type="button" class="mode-btn active" data-mode="single">Single</button>
+          <button type="button" class="mode-btn" data-mode="batch">Batch</button>
+        </div>
+      </div>
+
+      <div class="field-row submission-fields" id="single-fields">
         <div class="field">
           <label for="job-type" class="mono-label">Type</label>
           <select id="job-type">
@@ -83,22 +91,9 @@
         </div>
       </div>
 
-      <div class="field mode-field">
-        <label class="mono-label">Submission Mode</label>
-        <div class="mode-toggle" role="group" aria-label="Submission mode">
-          <button type="button" class="mode-btn active" data-mode="single">Single</button>
-          <button type="button" class="mode-btn" data-mode="batch">Batch</button>
-        </div>
-      </div>
-
-      <div class="field">
-        <label for="payload" class="mono-label">Payload (JSON)</label>
-        <input type="text" id="payload" class="mono-input" value='{"to":"user@example.com","subject":"Welcome"}'>
-      </div>
-
-      <div class="field batch-size-field hidden">
-        <label for="batch-size" class="mono-label">Batch Size</label>
-        <input type="number" id="batch-size" value="10" min="1" max="100">
+      <div class="field payload-field">
+        <label for="payload" class="mono-label" id="payload-label">Payload (JSON)</label>
+        <textarea id="payload" class="mono-input payload-textarea" rows="7">{"to":"user@example.com","subject":"Welcome"}</textarea>
       </div>
     </form>
     <div id="submit-status" class="submit-status"></div>
