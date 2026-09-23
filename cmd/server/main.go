@@ -71,7 +71,7 @@ func run() error {
 
 	mux := http.NewServeMux()
 	server.Routes(mux, staticDir())
-	handler := api.CORSMiddleware(api.LoggingMiddleware(mux))
+	handler := api.CORSMiddleware(api.LoggingMiddleware(api.WriteAuthMiddleware(cfg.AuthUsername, cfg.AuthPassword, mux)))
 
 	httpServer := &http.Server{
 		Addr:              ":" + cfg.Port,
