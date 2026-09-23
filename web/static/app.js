@@ -1,4 +1,14 @@
 const API_BASE = "/api";
+let authCredentials = null;
+
+function getAuthHeader() {
+  const username = document.getElementById("auth-username").value;
+  const password = document.getElementById("auth-password").value;
+  if (!username || !password) {
+    throw new Error("Enter the API username and password first.");
+  }
+  return "Basic " + btoa(`${username}:${password}`);
+}
 let autoRefreshTimer = null;
 let submissionMode = "single";
 
@@ -55,8 +65,12 @@ function renderJobs(jobs) {
     });
     tr.querySelector(".delete-btn").addEventListener("click", async (e) => {
       e.stopPropagation();
-      await deleteJob(j.id);
-      refreshAll();
+      try {
+        await deleteJob(j.id);
+        refreshAll();
+      } catch (err) {
+        alert(err.message);
+      }
     });
     body.appendChild(tr);
   }
@@ -69,7 +83,16 @@ function showJobDetail(job) {
 }
 
 async function deleteJob(id) {
-  await fetch(`${API_BASE}/jobs/${id}`, { method: "DELETE" });
+  const res = await fetch(`${API_BASE}/jobs/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: getAuthHeader() },
+  });
+  if (res.status === 401) {
+    throw new Error("Authentication failed.");
+  }
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}`);
+  }
 }
 
 function formatTime(iso) {
@@ -206,9 +229,13 @@ document.getElementById("job-form").addEventListener("submit", async (e) => {
       responseBody = { type, payload, max_attempts: maxAttempts };
     }
 
+    const authHeader = getAuthHeader();
     const res = await fetch(endpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: authHeader,
+      },
       body: JSON.stringify(responseBody),
     });
 
