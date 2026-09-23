@@ -1,5 +1,4 @@
 const API_BASE = "/api";
-let authCredentials = null;
 
 function getAuthHeader() {
   const username = document.getElementById("auth-username").value;
