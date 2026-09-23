@@ -8,7 +8,7 @@ import (
 
 func clearEnv(t *testing.T) {
 	t.Helper()
-	keys := []string{"PORT", "DATABASE_URL", "WORKER_COUNT", "MAX_RETRIES", "QUEUE_SIZE", "POLL_INTERVAL"}
+	keys := []string{"PORT", "DATABASE_URL", "AUTH_USERNAME", "AUTH_PASSWORD", "WORKER_COUNT", "MAX_RETRIES", "QUEUE_SIZE", "POLL_INTERVAL"}
 	for _, k := range keys {
 		orig, had := os.LookupEnv(k)
 		os.Unsetenv(k)
@@ -28,9 +28,20 @@ func TestLoad_MissingDatabaseURL(t *testing.T) {
 	}
 }
 
+func TestLoad_MissingAuthCredentials(t *testing.T) {
+	clearEnv(t)
+	os.Setenv("DATABASE_URL", "postgres://localhost/test")
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected error when auth credentials are missing")
+	}
+}
+
 func TestLoad_Defaults(t *testing.T) {
 	clearEnv(t)
 	os.Setenv("DATABASE_URL", "postgres://localhost/test")
+	os.Setenv("AUTH_USERNAME", "demo")
+	os.Setenv("AUTH_PASSWORD", "change-me")
 	cfg, err := Load()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -49,6 +60,8 @@ func TestLoad_Defaults(t *testing.T) {
 func TestLoad_InvalidWorkerCount(t *testing.T) {
 	clearEnv(t)
 	os.Setenv("DATABASE_URL", "postgres://localhost/test")
+	os.Setenv("AUTH_USERNAME", "demo")
+	os.Setenv("AUTH_PASSWORD", "change-me")
 	os.Setenv("WORKER_COUNT", "0")
 	_, err := Load()
 	if err == nil {
@@ -59,6 +72,8 @@ func TestLoad_InvalidWorkerCount(t *testing.T) {
 func TestLoad_CustomValues(t *testing.T) {
 	clearEnv(t)
 	os.Setenv("DATABASE_URL", "postgres://localhost/test")
+	os.Setenv("AUTH_USERNAME", "demo")
+	os.Setenv("AUTH_PASSWORD", "change-me")
 	os.Setenv("WORKER_COUNT", "10")
 	os.Setenv("PORT", "9090")
 	cfg, err := Load()
