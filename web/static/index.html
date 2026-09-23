@@ -62,6 +62,18 @@
       <p class="panel-sub">Queue one task or load the worker pool with a batch.</p>
     </div>
 
+    <div class="auth-box">
+      <div>
+        <label for="auth-username" class="mono-label">API Username</label>
+        <input type="text" id="auth-username" autocomplete="username" placeholder="Render AUTH_USERNAME">
+      </div>
+      <div>
+        <label for="auth-password" class="mono-label">API Password</label>
+        <input type="password" id="auth-password" autocomplete="current-password" placeholder="Render AUTH_PASSWORD">
+      </div>
+      <p class="auth-note">Used only for create, batch, and delete requests. Kept in memory while this page is open.</p>
+    </div>
+
     <form id="job-form" class="job-form">
       <div class="mode-field">
         <label class="mono-label">Submission Mode</label>
