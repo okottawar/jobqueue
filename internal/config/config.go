@@ -12,6 +12,8 @@ import (
 type Config struct {
 	Port          string
 	DatabaseURL   string
+	AuthUsername  string
+	AuthPassword  string
 	WorkerCount   int
 	MaxRetries    int
 	QueueSize     int
@@ -26,6 +28,8 @@ func Load() (*Config, error) {
 	cfg := &Config{
 		Port:          getEnv("PORT", "8080"),
 		DatabaseURL:   getEnv("DATABASE_URL", ""),
+		AuthUsername:  getEnv("AUTH_USERNAME", ""),
+		AuthPassword:  getEnv("AUTH_PASSWORD", ""),
 		WorkerCount:   getEnvInt("WORKER_COUNT", 5),
 		MaxRetries:    getEnvInt("MAX_RETRIES", 3),
 		QueueSize:     getEnvInt("QUEUE_SIZE", 100),
@@ -36,6 +40,9 @@ func Load() (*Config, error) {
 	}
 	if cfg.DatabaseURL == "" {
 		return nil, fmt.Errorf("DATABASE_URL environment variable is required")
+	}
+	if cfg.AuthUsername == "" || cfg.AuthPassword == "" {
+		return nil, fmt.Errorf("AUTH_USERNAME and AUTH_PASSWORD environment variables are required")
 	}
 	if cfg.WorkerCount < 1 {
 		return nil, fmt.Errorf("WORKER_COUNT must be at least 1")
