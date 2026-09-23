@@ -9,6 +9,10 @@ services:
     envVars:
       - key: DATABASE_URL
         sync: false
+      - key: AUTH_USERNAME
+        sync: false
+      - key: AUTH_PASSWORD
+        sync: false
       - key: WORKER_COUNT
         value: "5"
       - key: MAX_RETRIES
