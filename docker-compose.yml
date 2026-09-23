@@ -24,6 +24,8 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgres://jobqueue:jobqueue@postgres:5432/jobqueue?sslmode=disable
+      AUTH_USERNAME: demo
+      AUTH_PASSWORD: change-me
       WORKER_COUNT: 5
       MAX_RETRIES: 3
       PORT: 8080
