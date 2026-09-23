@@ -10,6 +10,7 @@ Jobs are stored in PostgreSQL, picked up by a configurable worker pool, and retr
 
 - REST API for creating, listing, reading, and deleting jobs
 - Batch endpoint for creating multiple jobs in one request
+- Basic authentication for job creation and deletion
 - Configurable worker pool built with goroutines and channels
 - PostgreSQL-backed job storage
 - Automatic retries with exponential backoff and jitter
@@ -150,7 +151,7 @@ The dashboard is plain HTML, CSS, and JavaScript. It shows:
 - single-job submission
 - batch submission with different job types in the same batch
 
-The goal of the UI is to make the queue behavior easy to see rather than to build a large frontend.
+The goal of the UI is to make the queue behavior easy to see rather than to build a large frontend. Write operations in the dashboard use the configured API credentials.
 
 ## Run locally
 
@@ -174,6 +175,8 @@ Set the database connection string:
 
 ```bash
 export DATABASE_URL="postgres://..."
+export AUTH_USERNAME="demo"
+export AUTH_PASSWORD="change-me"
 go run ./cmd/server
 ```
 
@@ -184,6 +187,8 @@ Environment variables include:
 | Variable | Default | Description |
 |---|---|---|
 | `DATABASE_URL` | required | PostgreSQL connection string |
+| `AUTH_USERNAME` | required | Username for protected write operations |
+| `AUTH_PASSWORD` | required | Password for protected write operations |
 | `PORT` | `8080` | HTTP port |
 | `WORKER_COUNT` | `5` | Number of workers |
 | `QUEUE_SIZE` | `100` | In-memory worker queue size |
@@ -222,6 +227,8 @@ The project is deployed with:
 The repository includes `Dockerfile` and `render.yaml`.
 
 The app runs database migrations when it starts.
+
+`POST /api/jobs`, `POST /api/jobs/batch`, and `DELETE /api/jobs/:id` require HTTP Basic Auth. Read-only endpoints remain public so the live dashboard can still be viewed without credentials.
 
 ## Project structure
 
